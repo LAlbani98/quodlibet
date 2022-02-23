@@ -13,6 +13,9 @@ ease constructors.
 
 from urllib.request import urlopen
 
+import gi
+gi.require_version("Gtk", "4.0")
+
 from gi.repository import Gtk, GObject, GLib, Gio, GdkPixbuf, Gdk
 
 from quodlibet.util.dprint import print_d
@@ -148,7 +151,8 @@ class Notebook(Gtk.Notebook):
     label is given, the page's 'title' attribute (either a string or
     a widget) is used."""
 
-    _KEY_MODS = (MT.SHIFT_MASK | MT.CONTROL_MASK | MT.MOD1_MASK | MT.MOD2_MASK)
+    # TODO MOD1 & MOD2 have been removed in Gtk 4, MOD1 was replaced with ALT
+    _KEY_MODS = (MT.SHIFT_MASK | MT.CONTROL_MASK | MT.ALT_MASK)
     """Keyboard modifiers of interest"""
 
     def __init__(self, *args, **kwargs):
@@ -243,10 +247,11 @@ def Frame(label, child=None):
     return frame
 
 
-class Align(Gtk.Alignment):
+class Align(Gtk.Box):
     """Note: With gtk3.12+ we could replace this with a Gtk.Bin +
     margin properties.
     """
+    # TODO a box shouldn't be necessary to do this
 
     def __init__(self, child=None,
                  top=0, right=0, bottom=0, left=0, border=0,
@@ -279,7 +284,7 @@ class Align(Gtk.Alignment):
             right_padding=right_padding)
 
         if child is not None:
-            self.add(child)
+            self.append(child)
 
     def get_margin_top(self):
         return self.props.top_padding
@@ -326,7 +331,7 @@ def _Button(type_, label, icon_name, size):
     return button
 
 
-def Button(label, icon_name=None, size=Gtk.IconSize.BUTTON):
+def Button(label, icon_name=None, size=Gtk.IconSize.NORMAL):
     """A Button with a custom label and stock image. It should pack
     exactly like a stock button.
     """
@@ -334,7 +339,7 @@ def Button(label, icon_name=None, size=Gtk.IconSize.BUTTON):
     return _Button(Gtk.Button, label, icon_name, size)
 
 
-def ToggleButton(label, icon_name=None, size=Gtk.IconSize.BUTTON):
+def ToggleButton(label, icon_name=None, size=Gtk.IconSize.NORMAL):
     """A ToggleButton with a custom label and stock image. It should pack
     exactly like a stock button.
     """
@@ -412,12 +417,13 @@ class CellRendererPixbuf(Gtk.CellRendererPixbuf):
             self.set_property("follow-state", True)
 
 
-class Action(Gtk.Action):
-    def __init__(self, *args, **kargs):
-        # Older pygobject didn't pass through kwargs to GObject.Object
-        # so skip the override __init__
-        GObject.Object.__init__(self, *args, **kargs)
-
+# TODO this is replaced with Gio.Action, which can't be subclassed
+Action = Gio.Action
+# class Action(Gtk.Action):
+#     def __init__(self, *args, **kargs):
+#         # Older pygobject didn't pass through kwargs to GObject.Object
+#         # so skip the override __init__
+#         GObject.Object.__init__(self, *args, **kargs)
 
 class ToggleAction(Gtk.ToggleAction):
     def __init__(self, *args, **kargs):

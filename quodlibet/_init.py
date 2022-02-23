@@ -234,14 +234,14 @@ def _init_gtk():
 
     try:
         # not sure if this is available under Windows
-        gi.require_version("GdkX11", "3.0")
+        gi.require_version("GdkX11", "4.0")
         from gi.repository import GdkX11
         GdkX11
     except (ValueError, ImportError):
         pass
 
-    gi.require_version("Gtk", "3.0")
-    gi.require_version("Gdk", "3.0")
+    gi.require_version("Gtk", "4.0")
+    gi.require_version("Gdk", "4.0")
     gi.require_version("Pango", "1.0")
     gi.require_version('Soup', '2.4')
     gi.require_version('PangoCairo', "1.0")
