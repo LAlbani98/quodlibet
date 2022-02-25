@@ -60,6 +60,9 @@ def init(no_translations=False, no_excepthook=False, config_file=None):
 
     _initialized = True
 
+    # TODO Temporarily enable all deprecation warnings
+    warnings.simplefilter('always', DeprecationWarning)
+
 
 def _init_gettext(no_translations=False):
     """Call before using gettext helpers"""
@@ -365,7 +368,6 @@ def _init_gtk():
         css_override.register_provider("", style_provider)
 
     # https://bugzilla.gnome.org/show_bug.cgi?id=708676
-    warnings.filterwarnings('ignore', '.*g_value_get_int.*', Warning)
 
     # blacklist some modules, simply loading can cause segfaults
     sys.modules["gtk"] = None
