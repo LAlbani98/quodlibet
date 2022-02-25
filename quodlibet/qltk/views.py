@@ -181,7 +181,9 @@ class TreeViewHints(Gtk.Window):
 
         # hide if any modifier is active.
         mask = Gtk.accelerator_get_default_mod_mask()
-        mask = Gdk.Keymap.get_default().map_virtual_modifiers(mask)[1]
+        # TODO check that a regression was not introduced
+        keymap = Gdk.Keymap.get_for_display(Gdk.Display.get_default())
+        mask = keymap.map_virtual_modifiers(mask)[1]
         if event.get_state() & mask:
             self.__undisplay()
             return False
@@ -1187,7 +1189,8 @@ class _TreeViewColumnLabel(Gtk.Label):
         if alloc.width <= available_width:
             return Gtk.Label.do_draw(self, ctx)
 
-        req_height = self.get_requisition().height
+        # TODO confirm that formatting was not broken
+        _, req_height = self.get_preferred_height()
         w, h = alloc.width, alloc.height
         aw = available_width
 
