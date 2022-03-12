@@ -585,6 +585,7 @@ class QuodLibetWindow(Window, PersistentWindowMixin, AppWindow):
         Gtk.AccelMap.save(accel_fn)
 
         menubar = ui.get_widget("/Menu")
+        menubar_new = self.__create_menu_new(player, library)
 
         # Since https://git.gnome.org/browse/gtk+/commit/?id=b44df22895c79
         # toplevel menu items show an empty 16x16 image. While we don't
@@ -594,7 +595,7 @@ class QuodLibetWindow(Window, PersistentWindowMixin, AppWindow):
             if isinstance(child, Gtk.ImageMenuItem):
                 child.set_image(None)
 
-        main_box.pack_start(menubar, False, True, 0)
+        main_box.pack_start(menubar_new, False, True, 0)
 
         top_bar = TopBar(self, player, library)
         main_box.pack_start(top_bar, False, True, 0)
@@ -858,6 +859,44 @@ class QuodLibetWindow(Window, PersistentWindowMixin, AppWindow):
             songs = view.get_songs()
             self.browser.reordered(songs)
         self.songlist.clear_sort()
+
+    def __create_menu_new(self, player, library):
+
+        accel = Gtk.AccelGroup()
+
+        menu_bar = Gtk.MenuBar.new()
+
+        file = Gtk.MenuItem.new_with_label("File")
+        menu_bar.append(file)
+        song = Gtk.MenuItem.new_with_label("Song")
+        menu_bar.append(song)
+        control = Gtk.MenuItem.new_with_label("Control")
+        menu_bar.append(control)
+        browse = Gtk.MenuItem.new_with_label("Browse")
+        menu_bar.append(browse)
+        help = Gtk.MenuItem.new_with_label("Help")
+        menu_bar.append(help)
+
+        file_menu = Gtk.Menu.new()
+        file.set_submenu(file_menu)
+        song_menu = Gtk.Menu.new()
+        song.set_submenu(song_menu)
+        control_menu = Gtk.Menu.new()
+        control.set_submenu(control_menu)
+        browse_menu = Gtk.Menu.new()
+        browse.set_submenu(browse_menu)
+        help_menu = Gtk.Menu.new()
+        help.set_submenu(help_menu)
+
+        addfolders_box = Gtk.Box()
+
+        test = Gtk.CheckMenuItem.new_with_label("example")
+        file_menu.append(test)
+
+        about = Gtk.MenuItem.new_with_label("About")
+        file_menu.append(about)
+
+        return menu_bar
 
     def __create_menu(self, player, library):
         def add_view_items(ag):
