@@ -273,7 +273,9 @@ class DirectoryTree(RCMHintedTreeView, MultiDragTreeView):
         # Allows to Re-Order Ascending or Descending Natural Sort
         column.set_clickable(True)
         header = column.get_button()
-        header.connect('button-press-event', self.__show_menu_sort)
+        menu = self._create_menu_sort2() #2
+        header.connect('button-press-event', self.__show_menu_sort2, menu) #2
+        #header.connect('button-press-event', self.__show_menu_sort)
 
         menu = self._create_menu()
         connect_obj(self, 'popup-menu', self._popup_menu, menu)
@@ -286,25 +288,22 @@ class DirectoryTree(RCMHintedTreeView, MultiDragTreeView):
         self.drag_dest_set(Gtk.DestDefaults.ALL, targets, Gdk.DragAction.COPY)
         self.connect('drag-data-received', self.__drag_data_received)
 
-    # Current, default saved sorting. This value stores the new sorting when changed.
-    current_sort = "Descending"
-
     # Allows change of sorting
-    def _toggle_resort(self,  event=None, label=current_sort, ordering=Gtk.SortType.DESCENDING):
+    def _toggle_resort2(self,  event=None, ordering=Gtk.SortType.ASCENDING):
         # Saving New order
-        self.current_sort = label
         model = self.get_model()
         model.set_sort_column_id(0, ordering)
 
+
     # Shows the sorting menu
-    def __show_menu_sort(self, column, event=None):
+    def __show_menu_sort2(self, column, event=None, menu=None):
         time = event.time if event else Gtk.get_current_event_time()
 
         if event is not None and event.button != Gdk.BUTTON_SECONDARY:
             return False
 
-        menu = self._create_menu_sort()
-        menu.attach_to_widget(self, None)
+        #menu = self._create_menu_sort()
+        #menu.attach_to_widget(self, None)
 
         if event:
             menu.popup(None, None, None, None, event.button, time)
@@ -314,19 +313,30 @@ class DirectoryTree(RCMHintedTreeView, MultiDragTreeView):
         qltk.popup_menu_under_widget(menu, widget, 3, time)
         return True
 
-    # Creates the sorting menu upon the current choice
-    def _create_menu_sort(self):
+    def _create_menu_sort2(self):
         menu = Gtk.Menu()
-        current = self.current_sort
-        for label, ordering in [
+        default = "Ascending"
+        radio_group = []
+
+        sort_options = [
+            ("Descending", Gtk.SortType.DESCENDING),
             ("Ascending", Gtk.SortType.ASCENDING),
-            ("Descending" , Gtk.SortType.DESCENDING),
-        ]:
-            RadioItem=Gtk.RadioMenuItem(label=label, name=label)
-            RadioItem.connect('activate', self._toggle_resort, label, ordering)
-            if current == label:
-                RadioItem.set_active(True)
+        ]
+
+        for label, ordering in sort_options:
+            RadioItem=Gtk.RadioMenuItem.new_with_label(label=label, group=radio_group)
+            RadioItem.connect('activate', self._toggle_resort2, ordering)
+            radio_group = RadioItem.get_group()
             menu.append(RadioItem)
+            if default == label:
+                RadioItem.set_active(True)
+
+
+        #index_default = sort_options.index(default)
+        #listA=menu.get_for_attach_widget()
+        #listA[index_default].set_active(True)
+        #menu[index_default].set_active(True)
+
         menu.show_all()
         return menu
 
