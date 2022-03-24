@@ -721,9 +721,6 @@ class AudioFile(dict, ImageContainer, HasKey):
         will be unicode.
 
         If the value is numeric, that is returned rather than a list.
-
-        Because this function is used to format values for display,
-        blank tags are removed from the results.
         """
 
         if "~" in key or key == "title":
@@ -737,7 +734,7 @@ class AudioFile(dict, ImageContainer, HasKey):
         if isinstance(v, (int, float)):
             return v
         else:
-            return re.sub("\n+", ", ", v.strip())
+            return v.replace("\n", ", ")
 
     def list(self, key):
         """Get all values of a tag, as a list. Synthetic tags are supported,
@@ -746,9 +743,8 @@ class AudioFile(dict, ImageContainer, HasKey):
         For file path keys the returned list might contain path items
         (non-unicode).
 
-        An empty tag cannot be distinguished from a non-existent tag; both
-        result in []. If a file contains multiple values of a tag, empty
-        instances of the tag will not be included in the list.
+        An empty synthetic tag cannot be distinguished from a non-existent
+        synthetic tag; both result in [].
         """
 
         if "~" in key or key == "title":
@@ -756,24 +752,17 @@ class AudioFile(dict, ImageContainer, HasKey):
             if v == "":
                 return []
             else:
-                v = v.split("\n") if isinstance(v, str) else [v]
-                return [x for x in v if x]
+                return v.split("\n") if isinstance(v, str) else [v]
         else:
-            v = self.get(key, "")
-            return [x for x in v.split("\n") if x]
+            v = self.get(key)
+            return [] if v is None else v.split("\n")
 
     def list_sort(self, key):
         """Like list but return display,sort pairs when appropriate
         and work on all tags.
 
-        In case no sort value exists the display one is returned. If a
-        display tag is empty, the tag is removed from the returned list
-        and the corresponding tag in the sort tag list is ignored as
-        well.
-
-        The assumption being made here is that if the ordering between
-        display and sort tags doesn't match exactly, that's a problem
-        with the user's file.
+        In case no sort value exists the display one is returned. The sort
+        value is only an empty string if the display one is empty as well.
         """
 
         display = decode_value(key, self(key))
@@ -788,7 +777,7 @@ class AudioFile(dict, ImageContainer, HasKey):
 
         result = []
         for d, s in zip_longest(display, sort):
-            if d:
+            if d is not None:
                 result.append((d, (s if s is not None and s != "" else d)))
         return result
 
