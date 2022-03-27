@@ -8,6 +8,7 @@
 import os
 import errno
 from urllib.parse import urlsplit
+from re import split
 
 from gi.repository import Gtk, GObject, Gdk, Gio, Pango
 from senf import uri2fsn, fsnative, fsn2text, bytes2fsn
@@ -190,7 +191,38 @@ class DirectoryTree(RCMHintedTreeView, MultiDragTreeView):
                    will result in a separator.
         """
 
+        # Extra currentSort
+        # currentSort=Gtk.SortType.ASCENDING
+
         model = ObjectTreeStore()
+
+        def compare(m: Gtk.TreeModel, a: Gtk.TreeIter, b: Gtk.TreeIter, _):
+
+            # Do not sort the top level directories
+            a_path = m.get_path(a)
+            if a_path is not None and a_path.get_depth() == 1:
+                return 0
+
+            def string_to_key(s):
+                # Break up the string into components
+                # parsing numbers and removing case from strings
+                k = [int(v) if v.isnumeric() else v.lower() for v in split(r"(\d+)", s)]
+
+                # Add the original string to the end, to preserve case information
+                # (When using lexicographical comparison, this acts as a fallback)
+                k.append(s)
+                return k
+
+            # Otherwise, files are sorted by their paths
+            a_key = string_to_key(m.get_value(a, 0))
+            b_key = string_to_key(m.get_value(b, 0))
+            return 1 if a_key > b_key else -1
+
+        # Sorts via compare, it is needed for that to be
+        # substituted with menu-chosen one.
+        model.set_sort_func(0, compare)
+        model.set_sort_column_id(0, Gtk.SortType.DESCENDING)
+
         super().__init__(model=model)
 
         if initial is not None:
@@ -238,6 +270,13 @@ class DirectoryTree(RCMHintedTreeView, MultiDragTreeView):
         if initial:
             self.go_to(initial)
 
+        # Allow re-sorting by Ascending or Descending Natural Sort
+        # via Menu that pops out from the column header
+        column.set_clickable(True)
+        header = column.get_button()
+        menu = self._create_menu_sort()
+        header.connect('button-press-event', self.__show_menu_sort, menu)
+
         menu = self._create_menu()
         connect_obj(self, 'popup-menu', self._popup_menu, menu)
 
@@ -248,6 +287,50 @@ class DirectoryTree(RCMHintedTreeView, MultiDragTreeView):
         targets = [Gtk.TargetEntry.new(*t) for t in targets]
         self.drag_dest_set(Gtk.DestDefaults.ALL, targets, Gdk.DragAction.COPY)
         self.connect('drag-data-received', self.__drag_data_received)
+
+    # Allows change of sorting
+    def _toggle_resort(self, radiomenuitem, ordering):
+        # Changing order
+        model = self.get_model()
+        model.set_sort_column_id(0, ordering)
+
+    # Shows the sorting menu
+    def __show_menu_sort(self, column, event=None, menu=None):
+        time = event.time if event else Gtk.get_current_event_time()
+
+        if event is not None and event.button != Gdk.BUTTON_SECONDARY:
+            return False
+
+        if event:
+            menu.popup(None, None, None, None, event.button, time)
+            return True
+
+        widget = column.get_widget()
+        qltk.popup_menu_under_widget(menu, widget, 3, time)
+        return True
+
+    def _create_menu_sort(self):
+        menu = Gtk.Menu()
+        default = "Ascending"
+        radio_group = []
+
+        sort_options = [
+            ("Descending", Gtk.SortType.DESCENDING),
+            ("Ascending", Gtk.SortType.ASCENDING),
+        ]
+
+        for label, ordering in sort_options:
+            RadioItem = Gtk.RadioMenuItem.new_with_label(label=label, group=radio_group)
+            RadioItem.connect('activate', self._toggle_resort, ordering)
+            radio_group = RadioItem.get_group()
+            menu.append(RadioItem)
+            if default == label:
+                default_button = RadioItem
+
+        default_button.set_active(True)
+        menu.show_all()
+
+        return menu
 
     def _create_menu(self):
         menu = Gtk.Menu()
@@ -558,8 +641,9 @@ class FileSelector(Paned):
         def select_all_files(view, path, col, fileselection):
             view.expand_row(path, False)
             fileselection.select_all()
+
         dirlist.connect('row-activated', select_all_files,
-            filelist.get_selection())
+                        filelist.get_selection())
 
         sw = ScrolledWindow()
         sw.add(dirlist)
@@ -616,7 +700,7 @@ class FileSelector(Paned):
                 for file_ in sorted(files):
                     filename = os.path.join(dir_, file_)
                     if (os.access(filename, os.R_OK) and
-                            not os.path.isdir(filename)):
+                        not os.path.isdir(filename)):
                         fmodel.append([filename])
             except OSError:
                 pass
@@ -637,7 +721,6 @@ class FileSelector(Paned):
 
 
 def _get_main_folders():
-
     def filter_exists(paths):
         return [p for p in paths if os.path.isdir(p)]
 
